@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Clock</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(90deg, #e99c5d, #f4cf92, #e99c5d);
+    }
+
+    .container {
+      width: 220px;
+      height: 460px;
+      background: rgba(50, 38, 28, 0.92);
+      text-align: center;
+      padding: 18px 12px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.5);
+      color: white;
+    }
+
+    .timer-box {
+      height: 160px;
+      background: #f1f1ef;
+      border: 10px solid #626262;
+      border-right-color: #00a8b5;
+      border-top-color: #00a8b5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    #time {
+      font-size: 34px;
+      color: #00a8b5;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    #title {
+      font-size: 28px;
+      margin-bottom: 25px;
+      text-shadow: 2px 2px 3px #777;
+    }
+
+    .line {
+      border-top: 2px dotted #999;
+      margin: 15px 0;
+    }
+
+    .settings {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .section {
+      width: 50%;
+    }
+
+    .section h3 {
+      font-size: 12px;
+      margin-bottom: 7px;
+      color: #eee;
+      text-shadow: 1px 1px 2px #777;
+    }
+
+    .value {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    #sessionValue {
+      color: #00a8b5;
+    }
+
+    #breakValue {
+      color: #ff6545;
+    }
+
+    .small-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .small-buttons button {
+      width: 38px;
+      height: 25px;
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .main-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 25px;
+    }
+
+    .main-buttons button {
+      width: 78px;
+      height: 55px;
+      background: #111;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .break-mode .timer-box {
+      border-top-color: #ff6545;
+      border-right-color: #626262;
+    }
+
+    .break-mode #time {
+      color: #ff6545;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container" id="container">
+    <div class="timer-box">
+      <div id="time">20:00</div>
+    </div>
+
+    <h1 id="title">Session 1</h1>
+
+    <div class="line"></div>
+
+    <div class="settings">
+      <div class="section">
+        <h3>session time</h3>
+        <div class="value" id="sessionValue">20 min</div>
+        <div class="small-buttons">
+          <button id="sessionMinus">-</button>
+          <button id="sessionPlus">+</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>break time</h3>
+        <div class="value" id="breakValue">5 min</div>
+        <div class="small-buttons">
+          <button id="breakMinus">-</button>
+          <button id="breakPlus">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="line"></div>
+
+    <div class="main-buttons">
+      <button id="startBtn">Start</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+  </div>
+
+  <script>
+    let sessionTime = 20;
+    let breakTime = 5;
+    let timeLeft = sessionTime * 60;
+    let timer = null;
+    let isRunning = false;
+    let isBreak = false;
+    let sessionCount = 1;
+
+    const container = document.getElementById("container");
+    const time = document.getElementById("time");
+    const title = document.getElementById("title");
+    const startBtn = document.getElementById("startBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    const sessionValue = document.getElementById("sessionValue");
+    const breakValue = document.getElementById("breakValue");
+
+    const sessionMinus = document.getElementById("sessionMinus");
+    const sessionPlus = document.getElementById("sessionPlus");
+    const breakMinus = document.getElementById("breakMinus");
+    const breakPlus = document.getElementById("breakPlus");
+
+    function displayTime() {
+      let min = Math.floor(timeLeft / 60);
+      let sec = timeLeft % 60;
+      time.textContent =
+        String(min).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+    }
+
+    function updateValues() {
+      sessionValue.textContent = sessionTime + " min";
+      breakValue.textContent = breakTime + " min";
+
+      if (!isRunning && !isBreak) {
+        timeLeft = sessionTime * 60;
+        displayTime();
+      }
+    }
+
+    function disableControls(status) {
+      sessionMinus.disabled = status;
+      sessionPlus.disabled = status;
+      breakMinus.disabled = status;
+      breakPlus.disabled = status;
+    }
+
+    function switchMode() {
+      if (isBreak) {
+        isBreak = false;
+        sessionCount++;
+        title.textContent = "Session " + sessionCount;
+        container.classList.remove("break-mode");
+        timeLeft = sessionTime * 60;
+      } else {
+        isBreak = true;
+        title.textContent = "Break!";
+        container.classList.add("break-mode");
+        timeLeft = breakTime * 60;
+      }
+    }
+
+    function startTimer() {
+      timer = setInterval(function () {
+        timeLeft--;
+        displayTime();
+
+        if (timeLeft <= 0) {
+          switchMode();
+          displayTime();
+        }
+      }, 1000);
+    }
+
+    startBtn.addEventListener("click", function () {
+      if (!isRunning) {
+        startTimer();
+        isRunning = true;
+        startBtn.textContent = "Pause";
+        disableControls(true);
+      } else {
+        clearInterval(timer);
+        isRunning = false;
+        startBtn.textContent = "Start";
+        disableControls(false);
+      }
+    });
+
+    resetBtn.addEventListener("click", function () {
+      clearInterval(timer);
+      isRunning = false;
+      isBreak = false;
+      sessionCount = 1;
+      timeLeft = sessionTime * 60;
+
+      title.textContent = "Session 1";
+      startBtn.textContent = "Start";
+      container.classList.remove("break-mode");
+      disableControls(false);
+      displayTime();
+    });
+
+    sessionPlus.addEventListener("click", function () {
+      sessionTime++;
+      updateValues();
+    });
+
+    sessionMinus.addEventListener("click", function () {
+      if (sessionTime > 0) {
+        sessionTime--;
+        updateValues();
+      }
+    });
+
+    breakPlus.addEventListener("click", function () {
+      breakTime++;
+      updateValues();
+    });
+
+    breakMinus.addEventListener("click", function () {
+      if (breakTime > 0) {
+        breakTime--;
+        updateValues();
+      }
+    });
+
+    displayTime();
+  </script>
+</body>
+</html>
